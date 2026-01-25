@@ -17,7 +17,7 @@ REJECT if:
 - Clearly fake (age: 999, location: "asdf")
 - Offensive or inappropriate content
 
-ACCEPT if answers appear genuine, even if brief. The "About" field is optional and can be empty.
+ACCEPT if answers appear genuine, even if brief.
 
 Respond with JSON only:
 {"valid": true, "reason": "ok"}
@@ -29,8 +29,7 @@ export async function validateIntroduction(fields: IntroductionFields): Promise<
 - Name: ${fields.name}
 - Age: ${fields.age}
 - Gender: ${fields.gender}
-- Location: ${fields.location}
-- About: ${fields.about || "(not provided)"}`;
+- Location: ${fields.location}`;
 
   log.debug({ model: config.llm.model }, "Calling LLM for validation");
 
