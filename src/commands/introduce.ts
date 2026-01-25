@@ -7,6 +7,7 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } from "discord.js";
+import { GENDERS } from "../types";
 
 export const MODAL_ID = "introduction-modal";
 
@@ -33,24 +34,15 @@ export function getModal(): ModalBuilder {
     .setRequired(true)
     .setMaxLength(3);
 
+  const genderOptions = GENDERS.map((gender) =>
+    new StringSelectMenuOptionBuilder().setLabel(gender).setValue(gender)
+  );
+
   const genderSelect = new StringSelectMenuBuilder()
     .setCustomId("gender")
     .setPlaceholder("Select your gender")
     .setRequired(true)
-    .addOptions(
-      new StringSelectMenuOptionBuilder()
-        .setLabel("Male")
-        .setValue("Male"),
-      new StringSelectMenuOptionBuilder()
-        .setLabel("Female")
-        .setValue("Female"),
-      new StringSelectMenuOptionBuilder()
-        .setLabel("Non-binary")
-        .setValue("Non-binary"),
-      new StringSelectMenuOptionBuilder()
-        .setLabel("Prefer not to say")
-        .setValue("Prefer not to say"),
-    );
+    .addOptions(genderOptions);
 
   const locationInput = new TextInputBuilder()
     .setCustomId("location")

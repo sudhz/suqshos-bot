@@ -1,7 +1,7 @@
-import { Client, Events, GatewayIntentBits, MessageFlags, REST, Routes, type GuildMember } from "discord.js";
+import { Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
 import { config } from "./config";
-import { data as introduceCommand, getModal, MODAL_ID } from "./commands/introduce";
-import { handleIntroductionSubmit } from "./handlers/introduction";
+import { data as introduceCommand } from "./commands/introduce";
+import { registerInteractionHandler } from "./handlers/interactions";
 import { logger } from "./utils/logger";
 import { startHealthServer } from "./server";
 
@@ -28,38 +28,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
 });
 
-client.on(Events.InteractionCreate, async (interaction) => {
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === "introduce") {
-      logger.debug({ userId: interaction.user.id }, "Introduce command invoked");
-
-      if (interaction.channelId !== config.channelId) {
-        logger.debug({ userId: interaction.user.id }, "Wrong channel for introduce");
-        await interaction.reply({
-          content: `Please use this command in <#${config.channelId}>`,
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      const member = interaction.member as GuildMember | null;
-      if (member?.roles.cache.has(config.memberRoleId)) {
-        logger.debug({ userId: interaction.user.id }, "Already verified user tried to introduce");
-        await interaction.reply({
-          content: "You have already been verified!",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      await interaction.showModal(getModal());
-    }
-  }
-
-  if (interaction.isModalSubmit() && interaction.customId === MODAL_ID) {
-    await handleIntroductionSubmit(interaction);
-  }
-});
+registerInteractionHandler(client);
 
 client.login(process.env.DISCORD_TOKEN);
 

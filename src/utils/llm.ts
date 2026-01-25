@@ -1,15 +1,8 @@
 import { config } from "../config";
+import type { IntroductionFields } from "../types";
 import { logger } from "./logger";
 
 const log = logger.child({ module: "llm" });
-
-interface IntroductionFields {
-  name: string;
-  age: string;
-  gender: string;
-  location: string;
-  about: string;
-}
 
 interface ValidationResult {
   valid: boolean;

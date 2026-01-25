@@ -1,7 +1,27 @@
-import { EmbedBuilder, MessageFlags, type ModalSubmitInteraction, type GuildMember } from "discord.js";
-import { config, type Gender } from "../config";
+import { MessageFlags, type ModalSubmitInteraction, type GuildMember } from "discord.js";
+import type { IntroductionFields } from "../types";
 import { validateIntroduction } from "../utils/llm";
 import { logger } from "../utils/logger";
+import { buildIntroductionEmbed } from "../utils/embeds";
+import { refreshStickyMessage } from "../utils/sticky";
+import { assignMemberRoles } from "../utils/roles";
+
+const DEFAULT_GENDER = "Not specified";
+
+function extractFields(interaction: ModalSubmitInteraction): IntroductionFields {
+  return {
+    name: interaction.fields.getTextInputValue("name"),
+    age: interaction.fields.getTextInputValue("age"),
+    gender: interaction.fields.getStringSelectValues("gender")[0] ?? DEFAULT_GENDER,
+    location: interaction.fields.getTextInputValue("location"),
+    about: interaction.fields.getTextInputValue("about"),
+  };
+}
+
+function parseAge(age: string): number | null {
+  const parsed = parseInt(age, 10);
+  return isNaN(parsed) ? null : parsed;
+}
 
 export async function handleIntroductionSubmit(interaction: ModalSubmitInteraction): Promise<void> {
   if (!interaction.inCachedGuild()) {
@@ -9,32 +29,20 @@ export async function handleIntroductionSubmit(interaction: ModalSubmitInteracti
     return;
   }
 
-  const userId = interaction.user.id;
-  const log = logger.child({ userId, handler: "introduction" });
-
+  const log = logger.child({ userId: interaction.user.id, handler: "introduction" });
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const fields = {
-    name: interaction.fields.getTextInputValue("name"),
-    age: interaction.fields.getTextInputValue("age"),
-    gender: interaction.fields.getStringSelectValues("gender")[0] ?? "Not specified",
-    location: interaction.fields.getTextInputValue("location"),
-    about: interaction.fields.getTextInputValue("about"),
-  };
-
+  const fields = extractFields(interaction);
   log.info({ fields }, "Introduction submitted");
 
-  const ageNum = parseInt(fields.age, 10);
-  if (isNaN(ageNum) || ageNum < 18) {
+  const age = parseAge(fields.age);
+  if (!age || age < 18) {
     log.info({ age: fields.age }, "Underage user rejected");
-    await interaction.editReply({
-      content: "You must be 18 or older to join this server.",
-    });
+    await interaction.editReply({ content: "You must be 18 or older to join this server." });
     return;
   }
 
   const validation = await validateIntroduction(fields);
-
   if (!validation.valid) {
     log.info({ reason: validation.reason }, "Introduction rejected");
     await interaction.editReply({
@@ -52,9 +60,8 @@ export async function handleIntroductionSubmit(interaction: ModalSubmitInteracti
     return;
   }
 
-  const genderRoleId = config.genderRoles[fields.gender as Gender];
   try {
-    await member.roles.add([config.memberRoleId, genderRoleId].filter(Boolean) as string[]);
+    await assignMemberRoles(member, fields.gender);
     log.info({ gender: fields.gender }, "Roles assigned");
   } catch (error) {
     log.error({ error }, "Failed to assign roles");
@@ -62,22 +69,11 @@ export async function handleIntroductionSubmit(interaction: ModalSubmitInteracti
     return;
   }
 
-  const embed = new EmbedBuilder()
-    .setColor(config.embed.accentColor)
-    .setTitle(fields.name)
-    .setImage(config.embed.bannerUrl)
-    .setThumbnail(member.displayAvatarURL())
-    .addFields(
-      { name: "Age", value: fields.age, inline: true },
-      { name: "Gender", value: fields.gender, inline: true },
-      { name: "Location", value: fields.location, inline: true }
-    )
-    .setFooter({ text: `Member #${interaction.guild?.memberCount ?? "?"}` })
-    .setTimestamp();
-
-  if (fields.about) {
-    embed.setDescription(fields.about);
-  }
+  const embed = buildIntroductionEmbed({
+    fields,
+    member,
+    memberCount: interaction.guild.memberCount,
+  });
 
   await channel.send({
     content: `Say hi to ${member}!`,
@@ -85,6 +81,7 @@ export async function handleIntroductionSubmit(interaction: ModalSubmitInteracti
     allowedMentions: { users: [member.id] },
   });
 
+  await refreshStickyMessage(channel, interaction.client.user.id);
   log.info("Introduction completed successfully");
 
   await interaction.editReply({

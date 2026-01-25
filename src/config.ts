@@ -1,4 +1,4 @@
-export type Gender = "Male" | "Female" | "Non-binary" | "Prefer not to say";
+import type { Gender } from "./types";
 
 export const config = {
   guildId: "1126830960047034488",
