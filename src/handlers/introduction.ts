@@ -1,5 +1,5 @@
 import { EmbedBuilder, MessageFlags, type ModalSubmitInteraction, type GuildMember } from "discord.js";
-import { config } from "../config";
+import { config, type Gender } from "../config";
 import { validateIntroduction } from "../utils/llm";
 import { logger } from "../utils/logger";
 
@@ -52,12 +52,13 @@ export async function handleIntroductionSubmit(interaction: ModalSubmitInteracti
     return;
   }
 
+  const genderRoleId = config.genderRoles[fields.gender as Gender];
   try {
-    await member.roles.add(config.memberRoleId);
-    log.info("Member role assigned");
+    await member.roles.add([config.memberRoleId, genderRoleId].filter(Boolean) as string[]);
+    log.info({ gender: fields.gender }, "Roles assigned");
   } catch (error) {
-    log.error({ error }, "Failed to assign role");
-    await interaction.editReply({ content: "Failed to assign member role. Please contact a moderator." });
+    log.error({ error }, "Failed to assign roles");
+    await interaction.editReply({ content: "Failed to assign roles. Please contact a moderator." });
     return;
   }
 
