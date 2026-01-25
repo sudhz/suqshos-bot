@@ -3,6 +3,7 @@ import { config } from "./config";
 import { data as introduceCommand, getModal, MODAL_ID } from "./commands/introduce";
 import { handleIntroductionSubmit } from "./handlers/introduction";
 import { logger } from "./utils/logger";
+import { startHealthServer } from "./server";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
@@ -61,3 +62,5 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+startHealthServer();
