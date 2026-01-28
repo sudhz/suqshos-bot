@@ -74,14 +74,20 @@ or
 }
 
 export async function detectAndTranslate(text: string): Promise<TranslationResult> {
-  const systemPrompt = `You detect if text is in English and translate if not.
+  const systemPrompt = `Detect if text is in a foreign language and translate it to English.
 
-Rules:
-- If the text is entirely in English (including common internet slang, abbreviations, emojis), respond: {"isEnglish": true}
-- If the text contains ANY non-English words, respond: {"isEnglish": false, "language": "Language Name", "translation": "English translation here"}
-- For mixed-language messages, translate the entire message to English
+TREAT AS ENGLISH:
+- Typos, misspellings, grammatical errors
+- Internet slang and abbreviations
+- Informal or broken English
 
-Respond with JSON only, no other text.`;
+TREAT AS NON-ENGLISH:
+- Full sentences in a foreign language
+
+When in doubt, assume English. Only flag obvious foreign languages.
+
+Respond with JSON only:
+{"isEnglish": true} or {"isEnglish": false, "language": "...", "translation": "..."}`;
 
   log.debug({ textLength: text.length }, "Detecting language");
 
