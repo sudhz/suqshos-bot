@@ -16,6 +16,10 @@ export function registerMessageHandler(client: Client): void {
       return;
     }
 
+    if (message.channel.isVoiceBased()) {
+      return;
+    }
+
     const text = message.content.trim();
     if (!text) {
       return;
