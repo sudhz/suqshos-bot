@@ -6,6 +6,12 @@ import { logger } from "../utils/logger";
 
 const log = logger.child({ module: "messageCreate" });
 
+const URL_REGEX = /https?:\/\/[^\s]+/gi;
+
+function isOnlyUrls(text: string): boolean {
+  return text.replace(URL_REGEX, "").trim() === "";
+}
+
 export function registerMessageHandler(client: Client): void {
   client.on(Events.MessageCreate, async (message: Message) => {
     if (message.author.bot) {
@@ -22,6 +28,10 @@ export function registerMessageHandler(client: Client): void {
 
     const text = message.content.trim();
     if (!text) {
+      return;
+    }
+
+    if (isOnlyUrls(text)) {
       return;
     }
 
