@@ -1,5 +1,5 @@
 import { config } from "../config";
-import type { IntroductionFields } from "../types";
+import type { IntroductionFields, TranslationResult } from "../types";
 import { logger } from "./logger";
 
 const log = logger.child({ module: "llm" });
@@ -9,7 +9,8 @@ interface ValidationResult {
   reason: string;
 }
 
-const SYSTEM_PROMPT = `You are validating a Discord server introduction. Analyze if the user provided genuine, thoughtful answers.
+export async function validateIntroduction(fields: IntroductionFields): Promise<ValidationResult> {
+  const systemPrompt = `You are validating a Discord server introduction. Analyze if the user provided genuine, thoughtful answers.
 
 REJECT if:
 - Gibberish or random characters
@@ -24,7 +25,6 @@ Respond with JSON only:
 or
 {"valid": false, "reason": "Brief explanation of what's wrong"}`;
 
-export async function validateIntroduction(fields: IntroductionFields): Promise<ValidationResult> {
   const userMessage = `Validate this introduction:
 - Name: ${fields.name}
 - Age: ${fields.age}
@@ -42,7 +42,7 @@ export async function validateIntroduction(fields: IntroductionFields): Promise<
     body: JSON.stringify({
       model: config.llm.model,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
       temperature: 0.1,
@@ -71,4 +71,55 @@ export async function validateIntroduction(fields: IntroductionFields): Promise<
   }
 
   return { valid: true, reason: "ok" };
+}
+
+export async function detectAndTranslate(text: string): Promise<TranslationResult> {
+  const systemPrompt = `You detect if text is in English and translate if not.
+
+Rules:
+- If the text is entirely in English (including common internet slang, abbreviations, emojis), respond: {"isEnglish": true}
+- If the text contains ANY non-English words, respond: {"isEnglish": false, "language": "Language Name", "translation": "English translation here"}
+- For mixed-language messages, translate the entire message to English
+
+Respond with JSON only, no other text.`;
+
+  log.debug({ textLength: text.length }, "Detecting language");
+
+  const response = await fetch(`${config.llm.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.DEEPINFRA_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: config.llm.model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Check this message: "${text}"` },
+      ],
+      temperature: 0.1,
+      max_tokens: 500,
+    }),
+  });
+
+  if (!response.ok) {
+    log.error({ status: response.status }, "Translation API error");
+    return { isEnglish: true };
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content?.trim();
+
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]) as TranslationResult;
+      log.debug({ result }, "Translation result");
+      return result;
+    }
+  } catch {
+    log.error({ content }, "Failed to parse translation response");
+  }
+
+  return { isEnglish: true };
 }

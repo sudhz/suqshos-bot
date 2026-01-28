@@ -2,11 +2,17 @@ import { Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
 import { config } from "./config";
 import { data as introduceCommand } from "./commands/introduce";
 import { registerInteractionHandler } from "./handlers/interactions";
+import { registerMessageHandler } from "./handlers/messageCreate";
 import { logger } from "./utils/logger";
 import { startHealthServer } from "./server";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
 client.on(Events.Debug, (message) => logger.debug({ source: "discord.js" }, message));
@@ -29,6 +35,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 });
 
 registerInteractionHandler(client);
+registerMessageHandler(client);
 
 client.login(process.env.DISCORD_TOKEN);
 
