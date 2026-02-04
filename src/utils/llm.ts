@@ -10,15 +10,18 @@ interface ValidationResult {
 }
 
 export async function validateIntroduction(fields: IntroductionFields): Promise<ValidationResult> {
-  const systemPrompt = `You are validating a Discord server introduction. Analyze if the user provided genuine, thoughtful answers.
+  const systemPrompt = `You are validating a Discord server introduction. Decide if the answers look genuine. Be lenient.
 
-REJECT if:
-- Gibberish or random characters
-- Single letter/word non-answers
-- Clearly fake (age: 999, location: "asdf")
+REJECT only if:
+- Obvious gibberish or keyboard smash (e.g., "asdkjhasd")
+- Single character or meaningless filler
+- Clearly fake or placeholder data (age: 999, location: "asdf")
 - Offensive or inappropriate content
 
-ACCEPT if answers appear genuine, even if brief.
+ACCEPT if:
+- Answers appear genuine, even if brief
+- Creative or playful names/nicknames
+- Non-English words, slang, or casual tone
 
 Respond with JSON only:
 {"valid": true, "reason": "ok"}
