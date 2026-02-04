@@ -6,6 +6,8 @@ import { registerMessageHandler } from "./handlers/messageCreate";
 import { logger } from "./utils/logger";
 import { startHealthServer } from "./server";
 
+const READY_CHECK_TIMEOUT_MS = 30_000;
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -18,6 +20,25 @@ const client = new Client({
 client.on(Events.Debug, (message) => logger.debug({ source: "discord.js" }, message));
 client.on(Events.Warn, (message) => logger.warn({ source: "discord.js" }, message));
 client.on(Events.Error, (error) => logger.error({ source: "discord.js", error }, "Discord.js error"));
+
+const setupProcessHandlers = () => {
+  process.on("unhandledRejection", (reason) => {
+    logger.error({ reason }, "Unhandled promise rejection");
+  });
+
+  process.on("uncaughtException", (error) => {
+    logger.error({ error }, "Uncaught exception");
+    process.exit(1);
+  });
+};
+
+const scheduleReadyCheck = () => {
+  setTimeout(() => {
+    if (!client.isReady()) {
+      logger.warn("Bot has not connected after 30 seconds");
+    }
+  }, READY_CHECK_TIMEOUT_MS);
+};
 
 client.once(Events.ClientReady, async (readyClient) => {
   logger.info({ tag: readyClient.user.tag }, "Bot logged in");
@@ -34,9 +55,19 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
 });
 
-registerInteractionHandler(client);
-registerMessageHandler(client);
+const start = async () => {
+  setupProcessHandlers();
+  registerInteractionHandler(client);
+  registerMessageHandler(client);
+  scheduleReadyCheck();
+  startHealthServer();
 
-client.login(process.env.DISCORD_TOKEN);
+  try {
+    await client.login(process.env.DISCORD_TOKEN);
+  } catch (error) {
+    logger.error({ error }, "Failed to login to Discord");
+    process.exit(1);
+  }
+};
 
-startHealthServer();
+void start();
