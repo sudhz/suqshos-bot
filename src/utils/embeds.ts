@@ -1,12 +1,6 @@
-import { EmbedBuilder, type GuildMember } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { config } from "../config";
-import type { IntroductionFields } from "../types";
-
-interface IntroEmbedOptions {
-  fields: IntroductionFields;
-  member: GuildMember;
-  memberCount: number;
-}
+import type { IntroEmbedOptions } from "../types";
 
 export function buildIntroductionEmbed({ fields, member, memberCount }: IntroEmbedOptions) {
   const embed = new EmbedBuilder()

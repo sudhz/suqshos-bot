@@ -1,13 +1,8 @@
 import { config } from "../config";
-import type { IntroductionFields, TranslationResult } from "../types";
+import type { IntroductionFields, TranslationResult, ValidationResult } from "../types";
 import { logger } from "./logger";
 
 const log = logger.child({ module: "llm" });
-
-interface ValidationResult {
-  valid: boolean;
-  reason: string;
-}
 
 export async function validateIntroduction(fields: IntroductionFields): Promise<ValidationResult> {
   const systemPrompt = `You are validating a Discord server introduction. Decide if the answers look genuine. Be lenient.

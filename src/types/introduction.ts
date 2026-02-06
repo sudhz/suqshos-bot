@@ -5,3 +5,9 @@ export interface IntroductionFields {
   location: string;
   about: string;
 }
+
+export interface IntroEmbedOptions {
+  fields: IntroductionFields;
+  member: import("discord.js").GuildMember;
+  memberCount: number;
+}

@@ -25,5 +25,9 @@
   "rateLimit": {
     "windowMs": 60000,
     "maxDetections": 3
+  },
+  "messageBuffer": {
+    "debounceMs": 3000,
+    "minWords": 3
   }
 }
