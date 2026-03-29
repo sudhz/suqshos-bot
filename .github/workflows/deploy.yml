@@ -16,6 +16,8 @@ jobs:
       REPO_URL: https://github.com/sudhz/suqshos-bot.git
       BUN_BIN: /home/suqshobots/.bun/bin/bun
     steps:
+      - uses: actions/checkout@v4
+
       - name: Configure SSH
         run: |
           install -m 700 -d ~/.ssh
@@ -25,17 +27,9 @@ jobs:
 
       - name: Deploy code on alwaysdata
         run: |
-          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_HOST" "DEPLOY_PATH='$DEPLOY_PATH' REPO_URL='$REPO_URL' BUN_BIN='$BUN_BIN' sh -lc '
-            if [ ! -d \"$DEPLOY_PATH/.git\" ]; then
-              git clone --branch main --single-branch \"$REPO_URL\" \"$DEPLOY_PATH\"
-            else
-              git -C \"$DEPLOY_PATH\" checkout main
-              git -C \"$DEPLOY_PATH\" pull --ff-only origin main
-            fi
-
-            cd \"$DEPLOY_PATH\"
-            \"$BUN_BIN\" install --frozen-lockfile
-          '"
+          chmod +x scripts/deploy-remote.sh
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' REPO_URL='$REPO_URL' BUN_BIN='$BUN_BIN' sh -s" < scripts/deploy-remote.sh
 
       - name: Restart alwaysdata service
         run: |
