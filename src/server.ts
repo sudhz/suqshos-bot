@@ -1,7 +1,11 @@
 import { logger } from "./utils/logger";
 
-export function startHealthServer(port: number | string = process.env.PORT || 3000) {
-  Bun.serve({
+export function startHealthServer(
+  port: number | string = process.env.PORT || 3000,
+  host: string = process.env.HOST || "0.0.0.0",
+) {
+  const server = Bun.serve({
+    hostname: host,
     port: Number(port),
     routes: {
       "/health": new Response("OK", { status: 200 }),
@@ -11,5 +15,7 @@ export function startHealthServer(port: number | string = process.env.PORT || 30
     },
   });
 
-  logger.info({ port }, "Health server started");
+  logger.info({ host, port }, "Health server started");
+
+  return server;
 }

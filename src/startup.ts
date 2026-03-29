@@ -4,14 +4,51 @@ import { logger } from "./utils/logger";
 
 const READY_CHECK_TIMEOUT_MS = 30_000;
 
-export const setupProcessHandlers = () => {
+type CleanupHandler = (signal: NodeJS.Signals | "uncaughtException") => Promise<void> | void;
+
+let isShuttingDown = false;
+
+const shutdownProcess = async (
+  signal: NodeJS.Signals | "uncaughtException",
+  exitCode: number,
+  cleanup?: CleanupHandler,
+) => {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  logger.info({ signal }, "Shutting down process");
+
+  try {
+    await cleanup?.(signal);
+  } catch (error) {
+    logger.error({ signal, error }, "Failed during shutdown cleanup");
+  }
+
+  process.exit(exitCode);
+};
+
+export const setupProcessHandlers = (cleanup?: CleanupHandler) => {
   process.on("unhandledRejection", (reason) => {
     logger.error({ reason }, "Unhandled promise rejection");
   });
 
   process.on("uncaughtException", (error) => {
     logger.error({ error }, "Uncaught exception");
-    process.exit(1);
+    void shutdownProcess("uncaughtException", 1, cleanup);
+  });
+
+  process.on("SIGINT", () => {
+    void shutdownProcess("SIGINT", 0, cleanup);
+  });
+
+  process.on("SIGTERM", () => {
+    void shutdownProcess("SIGTERM", 0, cleanup);
+  });
+
+  process.on("SIGHUP", () => {
+    void shutdownProcess("SIGHUP", 0, cleanup);
   });
 };
 

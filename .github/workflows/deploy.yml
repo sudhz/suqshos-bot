@@ -3,18 +3,44 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      deployments: write
+    env:
+      ALWAYSDATA_ACCOUNT: suqshobots
+      ALWAYSDATA_HOST: ssh-suqshobots.alwaysdata.net
+      ALWAYSDATA_SERVICE_ID: "22302"
+      DEPLOY_PATH: /home/suqshobots/bots/suqshos-bot
+      REPO_URL: https://github.com/sudhz/suqshos-bot.git
+      BUN_BIN: /home/suqshobots/.bun/bin/bun
     steps:
-      - uses: JorgeLNJunior/render-deploy@v1.4.7
-        with:
-          service_id: ${{ secrets.RENDER_SERVICE_ID }}
-          api_key: ${{ secrets.RENDER_API_KEY }}
-          clear_cache: true
-          wait_deploy: true
-          github_deployment: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.ALWAYSDATA_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$ALWAYSDATA_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy code on alwaysdata
+        run: |
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_HOST" "DEPLOY_PATH='$DEPLOY_PATH' REPO_URL='$REPO_URL' BUN_BIN='$BUN_BIN' sh -lc '
+            if [ ! -d \"$DEPLOY_PATH/.git\" ]; then
+              git clone --branch main --single-branch \"$REPO_URL\" \"$DEPLOY_PATH\"
+            else
+              git -C \"$DEPLOY_PATH\" checkout main
+              git -C \"$DEPLOY_PATH\" pull --ff-only origin main
+            fi
+
+            cd \"$DEPLOY_PATH\"
+            \"$BUN_BIN\" install --frozen-lockfile
+          '"
+
+      - name: Restart alwaysdata service
+        run: |
+          curl --fail --silent --show-error \
+            --basic \
+            --user "${{ secrets.ALWAYSDATA_API_TOKEN }} account=$ALWAYSDATA_ACCOUNT:" \
+            --request POST \
+            "https://api.alwaysdata.com/v1/service/$ALWAYSDATA_SERVICE_ID/restart/"

@@ -16,6 +16,8 @@ const client = new Client({
   ],
 });
 
+let healthServer: ReturnType<typeof startHealthServer> | null = null;
+
 client.on(Events.Debug, (message) => logger.debug({ source: "discord.js" }, message));
 client.on(Events.Warn, (message) => logger.warn({ source: "discord.js" }, message));
 client.on(Events.Error, (error) => logger.error({ source: "discord.js", error }, "Discord.js error"));
@@ -36,12 +38,19 @@ client.once(Events.ClientReady, async (readyClient) => {
 });
 
 const start = async () => {
-  setupProcessHandlers();
+  setupProcessHandlers(async () => {
+    if (healthServer) {
+      await healthServer.stop(true);
+      healthServer = null;
+    }
+
+    client.destroy();
+  });
   setupGatewayLogging(client);
   registerInteractionHandler(client);
   registerMessageHandler(client);
   scheduleReadyCheck(client);
-  startHealthServer();
+  healthServer = startHealthServer();
 
   try {
     await client.login(process.env.DISCORD_TOKEN);
