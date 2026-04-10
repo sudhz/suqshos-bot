@@ -37,7 +37,7 @@ async function handleTranslation(text: string, message: Message): Promise<void> 
         .setFooter({ text: "We keep main channels in English so everyone can follow along" });
 
       await message.reply({
-        content: `Head over to <#${config.nonEnglishChannelId}> for non-English conversations!`,
+        content: "Please keep this channel in English only!",
         embeds: [embed],
         allowedMentions: { users: [] },
       });
@@ -64,7 +64,7 @@ export function registerMessageHandler(client: Client): void {
 
     if (
       message.author.bot ||
-      config.excludedChannelIds.includes(message.channelId) ||
+      message.channelId !== config.monitoredChannelId ||
       message.channel.isVoiceBased() ||
       !text ||
       isOnlyUrls(text)

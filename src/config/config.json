@@ -15,14 +15,7 @@
     "bannerUrl": "https://i.postimg.cc/Pxy4KS98/suqsho-s-den-welcome.png",
     "accentColor": "0x8b5cf6"
   },
-  "nonEnglishChannelId": "1491740606718939246",
-  "excludedChannelIds": [
-    "1491740606718939246",
-    "1130229872824946730",
-    "1130228801691996241",
-    "1464673712929243267",
-    "1461315182952190035"
-  ],
+  "monitoredChannelId": "1491740606718939246",
   "rateLimit": {
     "windowMs": 60000,
     "maxDetections": 3
