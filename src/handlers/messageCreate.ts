@@ -34,7 +34,7 @@ async function handleTranslation(text: string, message: Message): Promise<void> 
           { name: "Original", value: text },
           { name: `${result.language} → English`, value: result.translation }
         )
-        .setFooter({ text: "We keep main channels in English so everyone can follow along" });
+        .setFooter({ text: "We keep this channel in English so everyone can follow along" });
 
       await message.reply({
         content: "Please keep this channel in English only!",
